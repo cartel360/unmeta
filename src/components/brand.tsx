@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Logo } from '@/components/logo';
 export function Mark() {
   return (
     <svg viewBox="0 0 32 32" fill="none" aria-hidden="true">
@@ -16,11 +17,6 @@ export function Mark() {
 }
 export function Brand() {
   return (
-    <Link href="/" className="brand" aria-label="Unmeta home">
-      <span className="brand-mark">
-        <Mark />
-      </span>
-      unmeta<span className="brand-dot">.</span>
-    </Link>
+    <Logo />
   );
 }

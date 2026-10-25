@@ -1846,3 +1846,40 @@ h3 {
   line-height: 1.75;
   color: var(--muted-foreground, #a1a1aa);
 }
+
+
+.brand-logo {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  text-decoration: none;
+}
+
+.brand-logo img {
+  width: auto;
+  height: 44px;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+.brand-logo-dark {
+  display: block;
+}
+
+.brand-logo-light {
+  display: none;
+}
+
+[data-theme='light'] .brand-logo-dark {
+  display: none;
+}
+
+[data-theme='light'] .brand-logo-light {
+  display: block;
+}
+
+@media (max-width: 640px) {
+  .brand-logo img {
+    height: 36px;
+  }
+}
