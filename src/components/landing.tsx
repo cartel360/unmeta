@@ -17,6 +17,7 @@ export function Landing() {
   return (
     <main>
       <section className="hero container" id="tool">
+
         <div className="hero-copy">
           <div className="privacy-tag">
             <span />
@@ -28,8 +29,15 @@ export function Landing() {
             <span>Nothing extra.</span>
           </h1>
           <p>
-            Remove hidden metadata from your images in seconds.
-            <br className="desktop-break" /> No uploads, no accounts, and no compromises on privacy.
+            Unmeta is a free, privacy-first image metadata cleaner
+            that removes EXIF, GPS, C2PA Content Credentials,
+            AI generation tags, and Stable Diffusion parameters
+            from your images.
+          </p>
+          <p className="hero-subtext">
+            Protect your privacy before you share. Everything
+            happens directly in your browser, with no uploads,
+            no accounts, and no image storage.
           </p>
           <div className="hero-points">
             <span>
@@ -43,6 +51,7 @@ export function Landing() {
             </span>
           </div>
         </div>
+
         <Workspace />
         <a className="hero-more" href="#how-it-works">
           A cleaner image. A little more peace of mind.
@@ -150,11 +159,17 @@ export function Landing() {
               </Link>
             </div>
           </article>
+
           <article className="feature">
             <ScanLine />
             <h3>Hidden, now visible.</h3>
-            <p>Inspect supported metadata before you decide what to share.</p>
+            <p>
+              Inspect EXIF, GPS, AI generation tags, Stable Diffusion
+              parameters, and other supported image metadata
+              before cleaning.
+            </p>
           </article>
+
           <article className="feature">
             <Layers />
             <h3>A whole batch. Less effort.</h3>

@@ -1837,3 +1837,12 @@ h3 {
 .options-body .option-field > label {
   display: block;
 }
+
+
+.hero-copy .hero-subtext {
+  margin-top: 12px;
+  max-width: 620px;
+  font-size: 0.95rem;
+  line-height: 1.75;
+  color: var(--muted-foreground, #a1a1aa);
+}
