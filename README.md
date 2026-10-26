@@ -146,3 +146,9 @@ Trailing-slash routes export as standalone directories, including `privacy/index
 `public/_headers` supplies the hosting header template. After each build, `scripts/security-headers.mjs` hashes the exported inline scripts and generates `out/_headers` for Cloudflare Pages and Netlify-compatible hosts. Other hosts can configure equivalent response headers.
 
 The production Content Security Policy restricts connections and assets to the site and required local resources. Inline scripts use hashes; inline styles remain enabled for animation styles. Rebuild after changing exported HTML so the hashes stay in sync. Development uses Next.js's development server rather than the production header policy.
+
+## License
+
+Unmeta is licensed under the [ISC License](LICENSE).
+
+Third-party packages retain their respective licenses. See [Third-party notices](THIRD_PARTY_NOTICES.md) for dependency attributions and license texts. Geist and Geist Mono are licensed under the SIL Open Font License 1.1. License files are also included in the static export under `/licenses/`.
