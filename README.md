@@ -1,67 +1,148 @@
 # Unmeta
 
-A static, browser-only image metadata inspector and remover. Built with Next.js App Router, strict TypeScript, Tailwind CSS, shadcn-style owned components backed by Radix, Lucide, Motion, exifr, and JSZip. Dark by default, with a light theme and responsive workspace.
+**Your images. Nothing extra.**
 
-## Develop
+Unmeta inspects and removes supported image metadata from JPEG, PNG, and WebP files. Images are processed locally in the browser, with options for format conversion, quality, resizing, and batch downloads.
 
-Requires Node.js 22.12 or newer (Node 24 recommended).
+The application exports as a static website. It requires no backend, database, or accounts.
+
+## Getting started
+
+Requires Node.js 22.12 or newer. Node.js 24 is recommended.
 
 ```sh
 npm ci
 npm run dev
 ```
 
-Open http://localhost:3000. Images never leave the browser through the application. No API routes, server actions, database, authentication, analytics, remote fonts, or image persistence.
+Open http://localhost:3000.
 
-## Validate
+## Stack
+
+- Next.js App Router, React, and TypeScript
+- Tailwind CSS, Radix UI, Lucide, and Motion
+- exifr for supported EXIF, GPS, XMP, and IPTC extraction
+- Canvas, ImageBitmap, and OffscreenCanvas for image processing
+- Web Workers for background encoding
+- JSZip for batch downloads
+- Vitest and Playwright for testing
+
+Geist and Geist Mono are bundled locally. Their licenses are included in `public/licenses/`.
+
+## Project structure
+
+```text
+src/
+  app/             Pages, layouts, styles, and SEO metadata
+  components/      Upload, workspace, inspector, and shared UI
+  config/          Site configuration
+  hooks/           Workspace state and batch processing
+  lib/image/       Validation, container parsing, inspection, encoding, and downloads
+  types/           Image and metadata types
+  workers/         Background image encoding
+scripts/           Static preview server and security header generation
+public/            Static assets and hosting header template
+tests/             Unit tests and browser integration tests
+```
+
+## Image processing
+
+1. Validate the file size, signature bytes, and container dimensions.
+2. Inspect supported metadata with exifr and format-specific container parsers.
+3. Decode the image, applying EXIF orientation through the browser decoder.
+4. Draw the pixels onto a new canvas, preserving the aspect ratio and applying the selected output settings.
+5. Encode a new image without copying the original metadata.
+6. Inspect the output and compare detected field keys before making it available for download.
+
+Encoding uses a Web Worker and OffscreenCanvas where supported, with a main-thread canvas fallback. Batch processing runs one image at a time to limit peak memory use. Cancelling a batch lets the current image finish and leaves pending images ready to retry.
+
+PNG and WebP outputs preserve transparency. JPEG output uses the selected background color. Resizing never upscales an image. ZIP archives contain processed files only, with duplicate filenames renamed automatically.
+
+Selected files and results remain in browser memory for the session. Removing files or clearing the workspace releases retained references and preview URLs. Images are not uploaded or saved to browser storage.
+
+## Metadata support
+
+| Format | Inspection coverage                                                                                                            |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| JPEG   | Supported EXIF/GPS fields, XMP, IPTC, ICC profile indicators, comments, and limited JUMBF/C2PA indicators                      |
+| PNG    | Supported EXIF fields, text and international text, compressed text indicators, ICC profiles, and `caBX` credential indicators |
+| WebP   | EXIF, XMP, ICC, and C2PA container indicators, plus raw XMP packet text                                                        |
+
+Compressed PNG text contents and detailed WebP metadata fields are not inspected. C2PA indicators identify possible credential containers; they do not validate signatures or provenance. Unknown vendor structures and pixel-based watermarks are outside the inspector's coverage.
+
+Field counts include readable fields and container indicators, which can overlap. A removed field count means a previously detected key is absent from the output. Browser encoders may introduce technical metadata of their own.
+
+## Limits and compatibility
+
+Limits are configured in `src/lib/image/formats.ts`:
+
+| Limit                       | Value                  |
+| --------------------------- | ---------------------- |
+| Original file size          | 30 MB per image        |
+| Pixel count                 | 32 megapixels          |
+| Maximum dimension           | 16,384 pixels per side |
+| Images per session          | 30                     |
+| Combined original file size | 150 MB                 |
+| Retained output size        | 200 MB                 |
+
+Only still JPEG, PNG, and WebP images are supported. Animated PNG/WebP, HEIC, GIF, SVG, AVIF, and RAW files are unsupported.
+
+JPEG and WebP re-encoding can reduce quality. PNG preserves canvas pixel values, but browser decoding and color management can change the original colors or profiles. Encoder support and memory limits vary by browser and device; smaller batches or output dimensions help on devices with limited memory.
+
+Output settings apply to images that have not yet been processed. To change a completed image's settings, remove it and add it again.
+
+## Testing
 
 ```sh
 npm run lint
 npm run typecheck
 npm test
-npx playwright install chromium
 npm run build
+npx playwright install chromium
 npm run test:e2e
 ```
 
-Playwright launches a local static-file QA server on port 3100, using the exported `out/` files and their real production CSP headers. Build before running browser tests. Set `PLAYWRIGHT_CHANNEL=chrome` to use an installed Chrome instead of a downloaded Chromium. Tests cover PNG text inspection/removal, actual worker success, real output decoding, JPEG/WebP conversion, transparency backgrounds, EXIF orientation, resizing, main-thread fallback, individual downloads, batches and ZIP naming, cancellation, reset, paste/drop input, invalid files, mobile navigation/layout, light mode, and legal routes. Unit tests cover signatures, size/dimension limits, PNG/JPEG/WebP containers, output sizing, filenames, verification comparisons, and cancellation state. Fixtures are generated in test code with valid PNG CRCs rather than including private photos.
+Browser tests run against the static export, including its production security headers, using a local server on port 3100. Build the application before running them. To use an installed Chrome browser, set `PLAYWRIGHT_CHANNEL=chrome`.
 
-## How processing works
+The test suite covers file validation, metadata parsing and comparison, output sizing, filenames, worker processing, canvas fallback, EXIF orientation, transparency, downloads, ZIP archives, cancellation, clipboard and drag-and-drop input, workspace reset, responsive navigation, and local-only image processing. Image fixtures are generated in the tests.
 
-1. Check file size and inspect signature bytes rather than trusting extension/MIME.
-2. Parse container dimensions before allocating decoded pixel buffers. Reject animation and excessive dimensions.
-3. Read supported metadata using exifr and lightweight PNG/JPEG/WebP container parsers.
-4. Decode with `createImageBitmap({imageOrientation: 'from-image'})`, falling back to the browser image decoder.
-5. Draw into a new canvas, preserving aspect ratio. PNG/WebP keep alpha; JPEG receives the chosen background. Resize only when selected, without upscaling.
-6. Encode in an isolated Worker with OffscreenCanvas where supported, or fall back to a main-thread canvas. A failed worker is terminated before fallback. Encoders unsupported by the browser fail explicitly.
-7. Inspect the generated Blob again, compare actual detected field keys, and provide a local object URL for download.
+Format the source with:
 
-Batch concurrency is **one** to bound peak decoding memory. Cancel finishes the active image and leaves pending files ready to retry. Repeated actions are guarded synchronously. Originals are unchanged. ZIPs contain successful outputs only; duplicate filenames are renamed case-insensitively. ImageBitmap resources are closed, worker instances terminated, canvases cleared, and preview URLs revoked on removal/reset/unmount. Download URLs expire after 30 seconds.
+```sh
+npm run format
+```
 
-Limits are configured in `src/lib/image/formats.ts`: 30 MB per original, 32 megapixels, 16,384 pixels per dimension, 30 images and 150 MB of original files per session. Retained result Blobs are limited to a combined 200 MB. Result Blobs also consume device memory. Use smaller batches or resize on memory-constrained devices. The main-thread fallback may briefly pause the interface on large images.
+## Configuration
 
-## Inspection coverage and limits
+Copy `.env.example` to `.env.local` to configure optional values. Public environment variables are read at build time.
 
-- exifr: supported TIFF/EXIF/GPS, XMP and IPTC readable fields. Parse failures are explicitly reported.
-- JPEG: EXIF and XMP APP1 segments, Photoshop/IPTC APP13 indicators, ICC APP2 indicators, comments, and limited APP11 JUMBF/C2PA indicators.
-- PNG: uncompressed text and international text, compressed text presence, EXIF, ICC, and `caBX` credential indicators. Compressed text contents are **not checked**. PNG text exposes generator prompts where stored as readable text. CRC integrity is ultimately subject to browser decoding; this is not a forensic validator.
-- WebP: EXIF, XMP, ICC, C2PA chunk indicators; XMP packet text. Detailed WebP EXIF parsing may be unavailable in exifr and is reported when parsing throws.
-- Image dimensions and output encoding are displayed separately from embedded metadata.
+| Variable                    | Purpose                                                        |
+| --------------------------- | -------------------------------------------------------------- |
+| `NEXT_PUBLIC_SITE_URL`      | Production HTTPS origin for canonical URLs and sitemap entries |
+| `NEXT_PUBLIC_GITHUB_URL`    | Repository link in the navigation; hidden when unset           |
+| `NEXT_PUBLIC_CONTACT_EMAIL` | Contact link on the privacy and terms pages; hidden when unset |
 
-Counts include both container indicators and readable fields and can overlap. A removed field count means previously detected keys are absent after processing, not proof that all metadata was removed. New encoder metadata may remain. Detailed metadata values are truncated for display. Unknown/private structures, compressed text contents, invisible pixel watermarks, and full C2PA signature validation are not inspected. Re-encoding does not make AI imagery undetectable. Embedded credentials can be discarded by re-encoding; provenance is not validated.
+Without `NEXT_PUBLIC_SITE_URL`, canonical URLs and sitemap entries are omitted.
 
-JPEG/WebP re-encoding is lossy. PNG preserves canvas values, not necessarily original color values or profiles. Browser decoders handle EXIF orientation; color management and encoder metadata vary by browser. Animated PNG/WebP, HEIC, GIF, SVG, AVIF, and RAW are unsupported. Settings apply only to files not yet processed; remove and re-add a processed file to change its output settings. Clearing releases application references, but browser/OS memory handling is outside application control.
-
-## Production and static hosting
-
-Copy `.env.example` to `.env.local` if needed. Set `NEXT_PUBLIC_SITE_URL` to your real HTTPS origin at **build time** to enable canonical URLs and sitemap entries. Without it, no domain is invented and the sitemap has no entries. Optionally configure a real GitHub URL and contact email; their links are otherwise hidden. Only use trusted values. Fonts are bundled locally.
+## Deployment
 
 ```sh
 npm run build
 ```
 
-Deploy the generated **`out/`** directory to any static host. No Node server is required in production. With Cloudflare Pages, use `npm run build` as the build command and `out` as the output directory. Configure the environment variables in the build settings and use a supported Node version. Trailing-slash routes produce standalone `privacy/index.html` and `terms/index.html` pages.
+Deploy the generated `out/` directory to a static hosting provider. No Node.js server is needed in production.
 
-`public/_headers` is exported for Cloudflare Pages/Netlify-compatible hosts. Other hosts must configure equivalent response headers. CSP blocks remote connections, objects and form submissions, restricts workers and images, and prevents framing. The postbuild script hashes the exported inline hydration/structured-data scripts and writes a CSP without script `unsafe-inline` or `unsafe-eval`. Motion inline styles still require style `unsafe-inline`. Rebuild after any HTML changes so the hashes remain current. `public/_headers` is the source template; deploy the generated `out/_headers`. The production CSP is intentionally not applied to Next's development server, which requires development tooling connections.
+For Cloudflare Pages, configure:
 
-Do not add upload endpoints, third-party telemetry, or persistent image storage without revising the privacy promise. The repository includes no secrets or invented legal entity/contact details.
+- **Build command:** `npm run build`
+- **Output directory:** `out`
+- **Node.js version:** 24
+- **Environment variables:** the applicable values from the configuration table
+
+Trailing-slash routes export as standalone directories, including `privacy/index.html` and `terms/index.html`.
+
+### Security headers
+
+`public/_headers` supplies the hosting header template. After each build, `scripts/security-headers.mjs` hashes the exported inline scripts and generates `out/_headers` for Cloudflare Pages and Netlify-compatible hosts. Other hosts can configure equivalent response headers.
+
+The production Content Security Policy restricts connections and assets to the site and required local resources. Inline scripts use hashes; inline styles remain enabled for animation styles. Rebuild after changing exported HTML so the hashes stay in sync. Development uses Next.js's development server rather than the production header policy.

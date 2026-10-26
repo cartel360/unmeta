@@ -13,6 +13,7 @@
   --border: #ffffff12;
   --border-strong: #ffffff21;
   --accent: #a58af9;
+  --error: #f29aa6;
   --primary: #8452ed;
   --primary-text: #fff;
   --soft: #a78bfa0d;
@@ -28,6 +29,7 @@
   --border: #10102012;
   --border-strong: #10102024;
   --accent: #7041ce;
+  --error: #b42338;
   --primary: #7944e6;
   --soft: #8b5cf608;
   color-scheme: light;
@@ -858,7 +860,7 @@ h3 {
   margin-top: 4px;
 }
 .error-text {
-  color: #ee8b96;
+  color: var(--error);
 }
 .row-actions {
   display: flex;
@@ -952,7 +954,7 @@ h3 {
   background: #ef44440a;
   border: 1px solid #ef444433;
   border-radius: 6px;
-  color: #e9858f;
+  color: var(--error);
   font-size: 11px;
 }
 .upload-errors > div {
@@ -1838,7 +1840,6 @@ h3 {
   display: block;
 }
 
-
 .hero-copy .hero-subtext {
   margin-top: 12px;
   max-width: 620px;
@@ -1846,7 +1847,6 @@ h3 {
   line-height: 1.75;
   color: var(--muted-foreground, #a1a1aa);
 }
-
 
 .brand-logo {
   display: inline-flex;
